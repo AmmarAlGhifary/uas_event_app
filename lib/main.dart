@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:uas_event_app/utils/app_theme.dart';
+import 'package:uas_event_app/screens/login_screen.dart';
 import 'package:uas_event_app/screens/dashboard_screen.dart';
 
 void main() {
@@ -18,7 +19,7 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
-      home: const OnBoardingScreen(),
+      home: const LoginScreen(),
     );
   }
 }
