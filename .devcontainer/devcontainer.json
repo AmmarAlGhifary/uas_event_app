@@ -1,0 +1,32 @@
+{
+  "name": "Flutter Codespace",
+  // Use a standard Debian/Ubuntu image as the base
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+
+  "features": {
+    "ghcr.io/devcontainers/features/flutter:1": {}
+  },
+
+  "customizations": {
+    "vscode": {
+      "settings": {
+        // Optional: set Dart as the default formatter for Dart files
+        "[dart]": {
+          "editor.defaultFormatter": "Dart-Code.dart-code",
+          "editor.formatOnSave": true
+        }
+      },
+      "extensions": [
+        "Dart-Code.dart-code",
+        "Dart-Code.flutter"
+      ]
+    }
+  },
+
+  "postCreateCommand": "flutter precache && flutter doctor",
+
+  "forwardPorts": [3000],
+  "postAttachCommand": {
+    "server": "flutter run --no-pub -d web-server --web-port 3000"
+  }
+}
