@@ -5,6 +5,7 @@ import 'package:uas_event_app/models/event_model.dart';
 import 'package:uas_event_app/screens/event_details_screen.dart';
 import 'package:uas_event_app/screens/profile_screen.dart';
 import 'package:uas_event_app/widgets/event_card.dart';
+import 'package:uas_event_app/screens/create_event_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -133,7 +134,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Event Terkini'),
+        title: const Text('AcaraKita'),
         actions: [
           IconButton(
             icon: const Icon(Icons.person_outline),
@@ -145,6 +146,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
             },
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          await Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => const CreateEventScreen()
+            ),
+          );
+          _fetchEvents();
+        },
+        tooltip: 'Buat Event Baru',
+        child: const Icon(Icons.add),
       ),
       body: RefreshIndicator(
         onRefresh: _fetchEvents,
@@ -178,21 +190,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: ['Semua', 'Akan Datang', 'Hari Ini', 'Selesai']
                     .map(
                       (status) => Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(status),
-                      selected: _activeFilter == status,
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() {
-                            _activeFilter = status;
-                          });
-                          _filterEvents();
-                        }
-                      },
-                    ),
-                  ),
-                )
+                        padding: const EdgeInsets.only(right: 8),
+                        child: FilterChip(
+                          label: Text(status),
+                          selected: _activeFilter == status,
+                          onSelected: (selected) {
+                            if (selected) {
+                              setState(() {
+                                _activeFilter = status;
+                              });
+                              _filterEvents();
+                            }
+                          },
+                        ),
+                      ),
+                    )
                     .toList(),
               ),
             ),
