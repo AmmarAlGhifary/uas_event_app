@@ -4,6 +4,7 @@ class Event {
   final String title;
   final String description;
   final String startDate;
+  final String endDate;
   final String location;
 
   Event({
@@ -11,6 +12,7 @@ class Event {
     required this.title,
     required this.description,
     required this.startDate,
+    required this.endDate,
     required this.location,
   });
 
@@ -20,6 +22,7 @@ class Event {
       title: json['title'],
       description: json['description'],
       startDate: json['start_date'],
+      endDate: json['end_date'],
       location: json['location'],
     );
   }
