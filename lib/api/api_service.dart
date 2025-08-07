@@ -18,7 +18,33 @@ class ApiService {
     'Accept': 'application/json',
   };
 
-  // --- Helper methods for token ---
+  Future<void> _saveAuthData(Map<String, dynamic> data) async {
+    final prefs = await SharedPreferences.getInstance();
+    final String token = data['token'];
+    await prefs.setString('auth_token', token);
+    _log('Token saved!');
+    final Map<String, dynamic> userData = data['user'];
+    await prefs.setString('user_data', jsonEncode(userData));
+    _log('User data saved!');
+  }
+
+  Future<void> _clearAuthData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
+    await prefs.remove('user_data');
+    _log('Auth data cleared!');
+  }
+
+  Future<User> getSavedUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? userDataString = prefs.getString('user_data');
+    if (userDataString == null) {
+      throw Exception('No user data found locally.');
+    }
+    final Map<String, dynamic> userData = jsonDecode(userDataString);
+    return User.fromJson(userData);
+  }
+
   Future<void> _saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('auth_token', token);
@@ -36,13 +62,15 @@ class ApiService {
     _log('Token removed!');
   }
 
-  // --- API Methods ---
   Future<List<Event>> getEvents() async {
     final Uri url = Uri.parse('$_baseUrl/events');
     _log('--> GET: $url');
 
     try {
-      final response = await http.get(url, headers: {'Accept': 'application/json'});
+      final response = await http.get(
+        url,
+        headers: {'Accept': 'application/json'},
+      );
 
       _log('<-- RESPONSE [${response.statusCode}] from GET: $url');
       _log('Body: ${response.body}');
@@ -97,11 +125,10 @@ class ApiService {
       final responseBody = jsonDecode(response.body);
 
       if (response.statusCode == 201) {
-        // PENINGKATAN: Langsung simpan token setelah registrasi berhasil
-        final String token = responseBody['data']['token'];
-        await _saveToken(token);
+        await _saveAuthData(responseBody['data']);
       } else {
-        final errorMessage = responseBody['message'] ?? 'Unknown registration error';
+        final errorMessage =
+            responseBody['message'] ?? 'Unknown registration error';
         throw Exception('Registrasi gagal: $errorMessage');
       }
     } catch (e) {
@@ -110,7 +137,7 @@ class ApiService {
     }
   }
 
-  Future<String> loginUser({
+  Future<void> loginUser({
     required String studentNumber,
     required String password,
   }) async {
@@ -137,9 +164,7 @@ class ApiService {
       final responseBody = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        final String token = responseBody['data']['token'];
-        await _saveToken(token);
-        return token;
+        await _saveAuthData(responseBody['data']);
       } else {
         final errorMessage = responseBody['message'] ?? 'Unknown login error';
         throw Exception('Login gagal: $errorMessage');
@@ -173,7 +198,9 @@ class ApiService {
         final data = jsonDecode(response.body);
         return User.fromJson(data);
       } else {
-        throw Exception('Gagal memuat data user. Status: ${response.statusCode}');
+        throw Exception(
+          'Gagal memuat data user. Status: ${response.statusCode}',
+        );
       }
     } catch (e) {
       _log('XXX ERROR from GET: $url -> $e');
@@ -182,12 +209,12 @@ class ApiService {
   }
 
   Future<void> logout() async {
-    final token = await _getToken();
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
     if (token == null) return;
 
     final url = Uri.parse('$_baseUrl/logout');
     _log('--> POST: $url');
-
     try {
       await http.post(
         url,
@@ -197,8 +224,7 @@ class ApiService {
         },
       );
     } finally {
-      // Apapun yang terjadi (sukses atau gagal), hapus token lokal
-      await _removeToken();
+      await _clearAuthData();
     }
   }
 }

@@ -37,12 +37,14 @@ class _LoginScreenState extends State<LoginScreen> {
         studentNumber: _studentNumberController.text,
         password: _passwordController.text,
       );
-
-      print('Login berhasil! Token: $token');
-
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const DashboardScreen()),
-      );
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        );
+      }
+      // Navigator.of(context).pushReplacement(
+      //   MaterialPageRoute(builder: (context) => const DashboardScreen()),
+      // );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

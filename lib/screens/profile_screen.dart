@@ -17,7 +17,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _userFuture = _apiService.getCurrentUser();
+    _userFuture = _apiService.getSavedUser();
   }
 
   void _handleLogout() async {
