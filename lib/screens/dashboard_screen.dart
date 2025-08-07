@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:uas_event_app/api/api_service.dart';
 import 'package:uas_event_app/models/event_model.dart';
@@ -22,7 +21,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _fetchEvents();
   }
 
-  void _fetchEvents() {
+  // Fungsi ini akan dipanggil saat inisialisasi dan saat pull-to-refresh
+  Future<void> _fetchEvents() async {
     setState(() {
       _eventsFuture = _apiService.getEvents();
     });
@@ -33,17 +33,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Event Terkini'),
-        // --- 2. TAMBAHKAN ACTIONS DI SINI ---
         actions: [
           IconButton(
             icon: const Icon(Icons.person_outline),
-            tooltip: 'Profil', // Teks yang muncul saat ikon ditekan lama
+            tooltip: 'Profil',
             onPressed: () {
-              // Navigasi ke ProfileScreen saat ikon ditekan
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const ProfileScreen(),
-                ),
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
               );
             },
           ),
@@ -63,7 +59,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 60),
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 60,
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       'Gagal memuat event',
@@ -72,7 +72,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Terjadi kesalahan saat menghubungi server. Silakan periksa koneksi internet Anda.',
+                      'Terjadi kesalahan saat menghubungi server. Silakan periksa koneksi internet Anda dan tarik ke bawah untuk menyegarkan.',
                       style: Theme.of(context).textTheme.bodyMedium,
                       textAlign: TextAlign.center,
                     ),
@@ -90,35 +90,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.event_busy_outlined, size: 60, color: Colors.grey),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Tidak Ada Event',
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Saat ini belum ada event yang tersedia.',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
+              child: Text(
+                'Saat ini belum ada event.',
+                style: Theme.of(context).textTheme.titleMedium,
               ),
             );
           }
 
           final events = snapshot.data!;
-          return ListView.builder(
-            itemCount: events.length,
-            itemBuilder: (context, index) {
-              return EventCard(event: events[index]);
-            },
+
+          return RefreshIndicator(
+            onRefresh: _fetchEvents,
+            child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: events.length,
+              itemBuilder: (context, index) {
+                return EventCard(event: events[index]);
+              },
+            ),
           );
         },
       ),

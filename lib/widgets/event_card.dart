@@ -1,5 +1,4 @@
 // lib/widgets/event_card.dart
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:uas_event_app/models/event_model.dart';
@@ -16,6 +15,50 @@ class EventCard extends StatelessWidget {
       return DateFormat('d MMMM yyyy', 'id_ID').format(parsedDate);
     } catch (e) {
       return dateString;
+    }
+  }
+
+  Widget _buildStatusChip(BuildContext context) {
+    try {
+      final now = DateTime.now();
+      final startDate = DateTime.parse(event.startDate);
+
+      final today = DateTime(now.year, now.month, now.day);
+      final eventDate = DateTime(startDate.year, startDate.month, startDate.day);
+
+      if (eventDate.isAtSameMomentAs(today)) {
+        return Chip(
+          label: const Text('Hari Ini'),
+          labelStyle: TextStyle(
+            color: Colors.green[800],
+            fontWeight: FontWeight.bold,
+          ),
+          backgroundColor: Colors.green[100],
+          visualDensity: VisualDensity.compact,
+          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+        );
+      } else if (eventDate.isAfter(today)) {
+        return Chip(
+          label: const Text('Akan Datang'),
+          labelStyle: TextStyle(
+            color: Colors.blue[800],
+            fontWeight: FontWeight.bold,
+          ),
+          backgroundColor: Colors.blue[100],
+          visualDensity: VisualDensity.compact,
+          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+        );
+      } else {
+        return Chip(
+          label: const Text('Selesai'),
+          labelStyle: TextStyle(color: Colors.grey[700]),
+          backgroundColor: Colors.grey[300],
+          visualDensity: VisualDensity.compact,
+          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+        );
+      }
+    } catch (e) {
+      return const SizedBox.shrink();
     }
   }
 
@@ -44,7 +87,7 @@ class EventCard extends StatelessWidget {
               height: 150,
               width: double.infinity,
               fit: BoxFit.cover,
-              loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+              loadingBuilder: (context, child, loadingProgress) {
                 if (loadingProgress == null) return child;
                 return Container(
                   height: 150,
@@ -52,7 +95,8 @@ class EventCard extends StatelessWidget {
                   child: Center(
                     child: CircularProgressIndicator(
                       value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                          ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
                           : null,
                     ),
                   ),
@@ -70,18 +114,29 @@ class EventCard extends StatelessWidget {
                 );
               },
             ),
+
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    event.title,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          event.title,
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildStatusChip(context),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   Row(
