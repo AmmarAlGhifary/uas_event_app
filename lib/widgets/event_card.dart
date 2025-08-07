@@ -7,12 +7,18 @@ class EventCard extends StatelessWidget {
   final Event event;
   final bool isRegistered;
   final VoidCallback onTap;
+  final bool showManagementButtons;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const EventCard({
     super.key,
     required this.event,
     required this.onTap,
     this.isRegistered = false,
+    this.showManagementButtons = false,
+    this.onEdit,
+    this.onDelete,
   });
 
   String _formatDate(String dateString) {
@@ -161,7 +167,6 @@ class EventCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  // Info Lokasi
                   Row(
                     children: [
                       Icon(
@@ -180,7 +185,6 @@ class EventCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  // --- BARIS BARU UNTUK JUMLAH PESERTA ---
                   const SizedBox(height: 8),
                   Row(
                     children: [
@@ -198,7 +202,36 @@ class EventCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  // --- AKHIR BARIS BARU ---
+                  if (showManagementButtons)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton.icon(
+                            onPressed: onEdit,
+                            icon: const Icon(Icons.edit_outlined, size: 18),
+                            label: const Text('Edit'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Theme.of(
+                                context,
+                              ).colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton.icon(
+                            onPressed: onDelete,
+                            icon: const Icon(Icons.delete_outline, size: 18),
+                            label: const Text('Hapus'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Theme.of(
+                                context,
+                              ).colorScheme.error,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),

@@ -1,4 +1,3 @@
-// lib/screens/my_events_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:uas_event_app/api/api_service.dart';
@@ -113,11 +112,9 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-
     if (error != null) {
       return Center(child: Text(error));
     }
-
     if (events.isEmpty) {
       return Center(
         child: Padding(
@@ -140,12 +137,27 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
           event: event,
           isRegistered: isAttendedList,
           onTap: () async {
-            await Navigator.of(context).push(
+            final result = await Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => EventDetailScreen(event: event),
               ),
             );
-            _loadAllData();
+            if (result == true) {
+              _loadAllData();
+            }
+          },
+          showManagementButtons: !isAttendedList,
+          onEdit: () {
+            print('Edit event: ${event.title}');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Fitur edit untuk "${event.title}" belum dibuat.')),
+            );
+          },
+          onDelete: () {
+            print('Hapus event: ${event.title}');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Fitur hapus untuk "${event.title}" belum dibuat.')),
+            );
           },
         );
       },

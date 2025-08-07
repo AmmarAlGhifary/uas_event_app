@@ -408,4 +408,89 @@ class ApiService {
       rethrow;
     }
   }
+
+  Future<Event> updateEvent({
+    required int eventId,
+    required String title,
+    required String description,
+    required String startDate,
+    required String endDate,
+    required String location,
+    required String category,
+    required int maxAttendees,
+    required int price,
+    String? imageUrl,
+  }) async {
+    final token = await getToken();
+    if (token == null) throw Exception('Otentikasi dibutuhkan.');
+
+    final url = Uri.parse('$_baseUrl/events/$eventId');
+    _log('--> PUT: $url');
+
+    final requestBody = {
+      'title': title,
+      'description': description,
+      'start_date': startDate,
+      'end_date': endDate,
+      'location': location,
+      'max_attendees': maxAttendees,
+      'price': price,
+      'category': category,
+      if (imageUrl != null && imageUrl.isNotEmpty) 'image_url': imageUrl,
+    };
+
+    final headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    try {
+      final response = await http.put(
+        url,
+        headers: headers,
+        body: jsonEncode(requestBody),
+      );
+
+      _log('<-- RESPONSE [${response.statusCode}] from PUT: $url');
+      final responseBody = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return Event.fromJson(responseBody['data']);
+      } else {
+        throw Exception(responseBody['message'] ?? 'Gagal mengupdate event.');
+      }
+    } catch (e) {
+      _log('XXX ERROR from PUT: $url -> $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteEvent(int eventId) async {
+    final token = await getToken();
+    if (token == null) throw Exception('Otentikasi dibutuhkan.');
+
+    final url = Uri.parse('$_baseUrl/events/$eventId');
+    _log('--> DELETE: $url');
+
+    final headers = {
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    try {
+      final response = await http.delete(url, headers: headers);
+      _log('<-- RESPONSE [${response.statusCode}] from DELETE: $url');
+
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        final responseBody = jsonDecode(response.body);
+        throw Exception(responseBody['message'] ?? 'Gagal menghapus event.');
+      }
+      // Jika sukses, tidak ada body yang perlu di-return
+    } catch (e) {
+      _log('XXX ERROR from DELETE: $url -> $e');
+      rethrow;
+    }
+  }
+
 }
