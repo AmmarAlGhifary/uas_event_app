@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://path.to/your/logo.png" alt="AcaraKita Logo" width="120">
+  <img src="assets/icon/icon.png" alt="AcaraKita Logo" width="120">
   <h1>
     <br>
     AcaraKita
