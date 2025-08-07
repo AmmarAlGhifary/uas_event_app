@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uas_event_app/api/api_service.dart';
-import 'package:uas_event_app/screens/dashboard_screen.dart'; // Sesuaikan path jika perlu
-import 'package:uas_event_app/screens/register_screen.dart'; // Sesuaikan path jika perlu
+import 'package:uas_event_app/screens/dashboard_screen.dart';
+import 'package:uas_event_app/screens/register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -27,7 +27,6 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  /// Handles the entire login logic, including UI updates and API calls.
   void _handleLogin() async {
     setState(() {
       _isLoading = true;
@@ -39,15 +38,12 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text,
       );
 
-      // TODO: Save the token to SharedPreferences for session persistence.
       print('Login berhasil! Token: $token');
 
-      // Navigate to Dashboard, replacing the login screen in the stack.
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const DashboardScreen()),
       );
     } catch (e) {
-      // On failure, show a red SnackBar with the error message.
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.toString().replaceFirst("Exception: ", "")),
@@ -55,7 +51,6 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     } finally {
-      // Ensure the loading indicator is hidden.
       if (mounted) {
         setState(() {
           _isLoading = false;

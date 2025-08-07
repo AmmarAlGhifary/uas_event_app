@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:uas_event_app/models/event_model.dart'; // Sesuaikan path jika perlu
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uas_event_app/models/event_model.dart';
+import 'package:uas_event_app/models/user_model.dart';
 
 void _log(String message) {
   if (kDebugMode) {
@@ -16,6 +18,25 @@ class ApiService {
     'Accept': 'application/json',
   };
 
+  // --- Helper methods for token ---
+  Future<void> _saveToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('auth_token', token);
+    _log('Token saved!');
+  }
+
+  Future<String?> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('auth_token');
+  }
+
+  Future<void> _removeToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
+    _log('Token removed!');
+  }
+
+  // --- API Methods ---
   Future<List<Event>> getEvents() async {
     final Uri url = Uri.parse('$_baseUrl/events');
     _log('--> GET: $url');
@@ -49,6 +70,7 @@ class ApiService {
     required String classYear,
   }) async {
     final Uri url = Uri.parse('$_baseUrl/register');
+
     final requestBody = {
       'name': name,
       'email': email,
@@ -72,15 +94,15 @@ class ApiService {
       _log('<-- RESPONSE [${response.statusCode}] from POST: $url');
       _log('Body: ${response.body}');
 
-      if (response.statusCode != 201) {
-        try {
-          final responseBody = jsonDecode(response.body);
-          final errorMessage = responseBody['message'] ?? 'Unknown registration error';
-          throw Exception('Registrasi gagal: $errorMessage');
-        } on FormatException {
-          throw Exception(
-              'Registrasi gagal: Respons server tidak valid. Status: ${response.statusCode}');
-        }
+      final responseBody = jsonDecode(response.body);
+
+      if (response.statusCode == 201) {
+        // PENINGKATAN: Langsung simpan token setelah registrasi berhasil
+        final String token = responseBody['data']['token'];
+        await _saveToken(token);
+      } else {
+        final errorMessage = responseBody['message'] ?? 'Unknown registration error';
+        throw Exception('Registrasi gagal: $errorMessage');
       }
     } catch (e) {
       _log('XXX ERROR from POST: $url -> $e');
@@ -93,6 +115,7 @@ class ApiService {
     required String password,
   }) async {
     final Uri url = Uri.parse('$_baseUrl/login');
+
     final requestBody = {
       'student_number': studentNumber,
       'password': password,
@@ -114,11 +137,8 @@ class ApiService {
       final responseBody = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = responseBody['data'];
-        final String token = data['token'];
-        if (token.isEmpty) {
-          throw Exception('Token is empty');
-        }
+        final String token = responseBody['data']['token'];
+        await _saveToken(token);
         return token;
       } else {
         final errorMessage = responseBody['message'] ?? 'Unknown login error';
@@ -127,6 +147,58 @@ class ApiService {
     } catch (e) {
       _log('XXX ERROR from POST: $url -> $e');
       rethrow;
+    }
+  }
+
+  Future<User> getCurrentUser() async {
+    final token = await _getToken();
+    if (token == null) throw Exception('Not authenticated. No token found.');
+
+    final url = Uri.parse('$_baseUrl/user');
+    _log('--> GET: $url');
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      _log('<-- RESPONSE [${response.statusCode}] from GET: $url');
+      _log('Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return User.fromJson(data);
+      } else {
+        throw Exception('Gagal memuat data user. Status: ${response.statusCode}');
+      }
+    } catch (e) {
+      _log('XXX ERROR from GET: $url -> $e');
+      rethrow;
+    }
+  }
+
+  Future<void> logout() async {
+    final token = await _getToken();
+    if (token == null) return;
+
+    final url = Uri.parse('$_baseUrl/logout');
+    _log('--> POST: $url');
+
+    try {
+      await http.post(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+    } finally {
+      // Apapun yang terjadi (sukses atau gagal), hapus token lokal
+      await _removeToken();
     }
   }
 }

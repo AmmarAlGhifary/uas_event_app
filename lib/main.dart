@@ -4,6 +4,7 @@ import 'package:uas_event_app/screens/login_screen.dart';
 import 'package:uas_event_app/screens/dashboard_screen.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 

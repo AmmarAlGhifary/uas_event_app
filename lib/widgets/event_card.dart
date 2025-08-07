@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:uas_event_app/models/event_model.dart';
+import 'package:intl/intl.dart';
 
 class EventCard extends StatelessWidget {
   final Event event;
@@ -10,6 +11,14 @@ class EventCard extends StatelessWidget {
     required this.event,
   });
 
+  String _formatDate(String dateString) {
+    try {
+      final DateTime parsedDate = DateTime.parse(dateString);
+      return DateFormat('d MMMM yyyy', 'id_ID').format(parsedDate);
+    } catch (e) {
+    return dateString;
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -30,14 +39,13 @@ class EventCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // --- TANGGAL EVENT ---
             Row(
               children: [
                 Icon(Icons.calendar_today, size: 16, color: Theme.of(context).colorScheme.secondary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    event.startDate,
+                    _formatDate(event.startDate),
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),
