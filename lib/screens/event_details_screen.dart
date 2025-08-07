@@ -1,12 +1,25 @@
+// lib/screens/event_details_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:uas_event_app/api/api_service.dart';
 import 'package:uas_event_app/models/event_model.dart';
 
-class EventDetailScreen extends StatelessWidget {
+class EventDetailScreen extends StatefulWidget {
   final Event event;
 
-  const EventDetailScreen({super.key, required this.event});
+  const EventDetailScreen({
+    super.key,
+    required this.event,
+  });
+
+  @override
+  State<EventDetailScreen> createState() => _EventDetailScreenState();
+}
+
+class _EventDetailScreenState extends State<EventDetailScreen> {
+  final ApiService _apiService = ApiService();
+  bool _isRegistering = false;
 
   String _formatDate(String dateString) {
     try {
@@ -17,8 +30,46 @@ class EventDetailScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _handleRegister() async {
+    setState(() {
+      _isRegistering = true;
+    });
+
+    try {
+      await _apiService.registerForEvent(widget.event.id);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pendaftaran berhasil!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              e.toString().replaceFirst("Exception: ", ""),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRegistering = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final event = widget.event;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detail Event'),
@@ -36,7 +87,6 @@ class EventDetailScreen extends StatelessWidget {
                   ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
-
             _buildDetailRow(
               context,
               icon: Icons.location_on_outlined,
@@ -44,7 +94,6 @@ class EventDetailScreen extends StatelessWidget {
               subtitle: event.location,
             ),
             const SizedBox(height: 16),
-
             _buildDetailRow(
               context,
               icon: Icons.calendar_today_outlined,
@@ -52,7 +101,6 @@ class EventDetailScreen extends StatelessWidget {
               subtitle: _formatDate(event.startDate),
             ),
             const SizedBox(height: 16),
-
             _buildDetailRow(
               context,
               icon: Icons.calendar_today,
@@ -60,7 +108,6 @@ class EventDetailScreen extends StatelessWidget {
               subtitle: _formatDate(event.endDate),
             ),
             const Divider(height: 48, thickness: 1),
-
             Text(
               'Deskripsi',
               style: Theme.of(context)
@@ -80,13 +127,34 @@ class EventDetailScreen extends StatelessWidget {
           ],
         ),
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _isRegistering ? null : _handleRegister,
+        label: _isRegistering
+            ? const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.0),
+          child: SizedBox(
+            height: 20,
+            width: 20,
+            child: CircularProgressIndicator(
+              color: Colors.white,
+              strokeWidth: 2,
+            ),
+          ),
+        )
+            : const Text('Daftar Event Ini'),
+        icon: _isRegistering
+            ? const SizedBox.shrink()
+            : const Icon(Icons.how_to_reg_outlined),
+      ),
     );
   }
 
-  Widget _buildDetailRow(BuildContext context,
-      {required IconData icon,
+  Widget _buildDetailRow(
+      BuildContext context, {
+        required IconData icon,
         required String title,
-        required String subtitle}) {
+        required String subtitle,
+      }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
