@@ -3,12 +3,16 @@ class User {
   final String name;
   final String email;
   final String studentNumber;
+  final String major;
+  final String classYear;
 
   User({
     required this.id,
     required this.name,
     required this.email,
     required this.studentNumber,
+    required this.major,
+    required this.classYear,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -17,6 +21,8 @@ class User {
       name: json['name'],
       email: json['email'],
       studentNumber: json['student_number'],
+      major: json['major'],
+      classYear: json['class_year'],
     );
   }
 }

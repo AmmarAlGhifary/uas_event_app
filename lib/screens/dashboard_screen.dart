@@ -64,16 +64,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       final results = await Future.wait([
         _apiService.getEvents(),
-        _apiService.getMyRegisteredEventIds(),
+        _apiService.getMyRegisteredEvents(),
       ]);
 
-      final events = results[0] as List<Event>;
-      final registeredIds = results[1] as Set<int>;
+      final allEvents = results[0];
+      final registeredEvents = results[1];
+
+      final registeredIds = registeredEvents.map((event) => event.id).toSet();
 
       if (mounted) {
         setState(() {
-          _allEvents = events;
+          _allEvents = allEvents;
           _registeredEventIds = registeredIds;
+
           _isLoading = false;
         });
         _filterEvents();
@@ -150,8 +153,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           await Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => const CreateEventScreen()
-            ),
+            MaterialPageRoute(builder: (context) => const CreateEventScreen()),
           );
           _fetchEvents();
         },

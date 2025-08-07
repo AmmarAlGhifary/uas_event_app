@@ -174,8 +174,6 @@ class ApiService {
     }
   }
 
-  // --- PUBLIC USER DATA METHODS ---
-
   Future<User> getCurrentUser() async {
     final token = await getToken();
     if (token == null) throw Exception('Not authenticated. No token found.');
@@ -232,9 +230,10 @@ class ApiService {
     }
   }
 
-  Future<Set<int>> getMyRegisteredEventIds() async {
+  Future<List<Event>> getMyRegisteredEvents() async {
     final token = await getToken();
-    if (token == null) return {};
+    if (token == null) return [];
+
     final url = Uri.parse('$_baseUrl/my-events');
     _log('--> GET: $url');
     try {
@@ -242,25 +241,20 @@ class ApiService {
         url,
         headers: {
           'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
+          'Authorization': 'Bearer $token'
         },
       );
       _log('<-- RESPONSE [${response.statusCode}] from GET: $url');
-      _log('Body: ${response.body}');
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
         final List<dynamic> eventsList = responseBody['data']['events'];
-        final eventIds = eventsList
-            .map((eventData) => eventData['id'] as int)
-            .toSet();
-        await _saveMyEvents(eventIds);
-        return eventIds;
+        return eventsList.map((json) => Event.fromJson(json)).toList();
       } else {
-        return getSavedRegisteredEventIds();
+        return [];
       }
     } catch (e) {
-      _log('XXX ERROR from GET: $url -> $e');
-      return getSavedRegisteredEventIds();
+      _log('XXX ERROR from getMyRegisteredEvents: $e');
+      return [];
     }
   }
 
@@ -296,6 +290,36 @@ class ApiService {
     } catch (e) {
       _log('XXX ERROR from POST: $url -> $e');
       rethrow;
+    }
+  }
+
+  Future<List<Event>> getCreatedEvents() async {
+    final token = await getToken();
+    if (token == null) return [];
+
+    final url = Uri.parse('$_baseUrl/user/created-events');
+    _log('--> GET: $url');
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token'
+        },
+      );
+
+      _log('<-- RESPONSE [${response.statusCode}] from GET: $url');
+      if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
+        final List<dynamic> eventsList = responseBody['data'];
+        return eventsList.map((json) => Event.fromJson(json)).toList();
+      } else {
+        return [];
+      }
+    } catch (e) {
+      _log('XXX ERROR from getCreatedEvents: $e');
+      return [];
     }
   }
 

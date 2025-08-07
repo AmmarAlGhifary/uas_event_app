@@ -19,6 +19,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   final _maxAttendeesController = TextEditingController();
   final _priceController = TextEditingController();
   final _imageUrlController = TextEditingController();
+  final _startDateController = TextEditingController();
+  final _endDateController = TextEditingController();
 
   DateTime? _selectedStartDate;
   DateTime? _selectedEndDate;
@@ -35,17 +37,22 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     _maxAttendeesController.dispose();
     _priceController.dispose();
     _imageUrlController.dispose();
+    _startDateController.dispose(); // Don't forget to dispose new controllers
+    _endDateController.dispose();
     super.dispose();
   }
 
   Future<void> _submitForm() async {
+    FocusScope.of(context).unfocus();
+
     if (_formKey.currentState!.validate()) {
       if (_selectedStartDate == null || _selectedEndDate == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Silakan pilih tanggal mulai dan selesai.'),
-            backgroundColor: Colors.orange,
-          ),
+        _showErrorSnackBar('Silakan pilih tanggal mulai dan selesai.');
+        return;
+      }
+      if (_selectedEndDate!.isBefore(_selectedStartDate!)) {
+        _showErrorSnackBar(
+          'Tanggal selesai tidak boleh sebelum tanggal mulai.',
         );
         return;
       }
@@ -66,8 +73,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           endDate: endDateString,
           location: _locationController.text,
           category: _categoryController.text,
-          maxAttendees: int.parse(_maxAttendeesController.text),
-          price: int.parse(_priceController.text),
+          maxAttendees: int.tryParse(_maxAttendeesController.text) ?? 0,
+          price: int.tryParse(_priceController.text) ?? 0,
           imageUrl: _imageUrlController.text,
         );
 
@@ -78,17 +85,14 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.of(context).pop();
+          Navigator.of(
+            context,
+          ).pop(true);
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Gagal membuat event: ${e.toString().replaceFirst("Exception: ", "")}',
-              ),
-              backgroundColor: Colors.red,
-            ),
+          _showErrorSnackBar(
+            'Gagal membuat event: ${e.toString().replaceFirst("Exception: ", "")}',
           );
         }
       } finally {
@@ -99,11 +103,19 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     }
   }
 
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
   Future<void> _pickDateTime(bool isStartDate) async {
     final DateTime? date = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
+      initialDate:
+          (isStartDate ? _selectedStartDate : _selectedEndDate) ??
+          DateTime.now(),
+      firstDate: DateTime.now().subtract(const Duration(days: 30)),
       lastDate: DateTime(2100),
     );
 
@@ -111,7 +123,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
     final TimeOfDay? time = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(DateTime.now()),
+      initialTime: TimeOfDay.fromDateTime(
+        (isStartDate ? _selectedStartDate : _selectedEndDate) ?? DateTime.now(),
+      ),
     );
 
     if (time == null) return;
@@ -127,8 +141,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     setState(() {
       if (isStartDate) {
         _selectedStartDate = fullDateTime;
+        _startDateController.text = _formatDateTimeForDisplay(fullDateTime);
       } else {
         _selectedEndDate = fullDateTime;
+        _endDateController.text = _formatDateTimeForDisplay(fullDateTime);
       }
     });
   }
@@ -142,97 +158,87 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Buat Event Baru')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildTextFormField(
-                controller: _titleController,
-                label: 'Judul Event',
-                icon: Icons.title,
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          // Use ListView for better scrolling with many fields
+          padding: const EdgeInsets.all(16.0),
+          children: [
+            _buildTextFormField(
+              controller: _titleController,
+              label: 'Judul Event',
+              icon: Icons.title,
+            ),
+            _buildTextFormField(
+              controller: _descriptionController,
+              label: 'Deskripsi',
+              icon: Icons.description,
+              maxLines: 5,
+            ),
+            _buildTextFormField(
+              controller: _locationController,
+              label: 'Lokasi',
+              icon: Icons.location_on_outlined,
+            ),
+            _buildTextFormField(
+              controller: _categoryController,
+              label: 'Kategori (e.g., Workshop, Seminar)',
+              icon: Icons.category_outlined,
+            ),
+            // --- UPDATED DATE FIELDS ---
+            _buildTextFormField(
+              controller: _startDateController,
+              label: 'Tanggal & Waktu Mulai',
+              icon: Icons.calendar_today_outlined,
+              readOnly: true,
+              onTap: () => _pickDateTime(true),
+            ),
+            _buildTextFormField(
+              controller: _endDateController,
+              label: 'Tanggal & Waktu Selesai',
+              icon: Icons.calendar_month_outlined,
+              readOnly: true,
+              onTap: () => _pickDateTime(false),
+            ),
+            _buildTextFormField(
+              controller: _maxAttendeesController,
+              label: 'Maksimal Peserta',
+              icon: Icons.people_outline,
+              keyboardType: TextInputType.number,
+              formatters: [FilteringTextInputFormatter.digitsOnly],
+            ),
+            _buildTextFormField(
+              controller: _priceController,
+              label: 'Harga (Isi 0 jika gratis)',
+              icon: Icons.price_change_outlined,
+              keyboardType: TextInputType.number,
+              formatters: [FilteringTextInputFormatter.digitsOnly],
+            ),
+            _buildTextFormField(
+              controller: _imageUrlController,
+              label: 'URL Gambar (Opsional)',
+              icon: Icons.image_outlined,
+              validator: null, // Optional field doesn't need a validator
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _isSubmitting ? null : _submitForm,
+              icon: _isSubmitting
+                  ? const SizedBox.shrink()
+                  : const Icon(Icons.save_outlined),
+              label: _isSubmitting
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Simpan Event'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                textStyle: Theme.of(context).textTheme.titleMedium,
               ),
-              _buildTextFormField(
-                controller: _descriptionController,
-                label: 'Deskripsi',
-                icon: Icons.description,
-                maxLines: 5,
-              ),
-              _buildTextFormField(
-                controller: _locationController,
-                label: 'Lokasi',
-                icon: Icons.location_on,
-              ),
-              _buildTextFormField(
-                controller: _categoryController,
-                label: 'Kategori (e.g., Workshop, Seminar)',
-                icon: Icons.category,
-              ),
-              TextFormField(
-                readOnly: true,
-                decoration: InputDecoration(
-                  labelText: 'Tanggal & Waktu Mulai',
-                  prefixIcon: const Icon(Icons.calendar_today),
-                  hintText: _selectedStartDate == null
-                      ? 'Pilih tanggal & waktu'
-                      : _formatDateTimeForDisplay(_selectedStartDate),
-                ),
-                onTap: () => _pickDateTime(true),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                readOnly: true,
-                decoration: InputDecoration(
-                  labelText: 'Tanggal & Waktu Selesai',
-                  prefixIcon: const Icon(Icons.calendar_month),
-                  hintText: _selectedEndDate == null
-                      ? 'Pilih tanggal & waktu'
-                      : _formatDateTimeForDisplay(_selectedEndDate),
-                ),
-                onTap: () => _pickDateTime(false),
-              ),
-              const SizedBox(height: 16),
-              _buildTextFormField(
-                controller: _maxAttendeesController,
-                label: 'Maksimal Peserta',
-                icon: Icons.people,
-                keyboardType: TextInputType.number,
-                formatters: [FilteringTextInputFormatter.digitsOnly],
-              ),
-              _buildTextFormField(
-                controller: _priceController,
-                label: 'Harga (0 jika gratis)',
-                icon: Icons.price_change,
-                keyboardType: TextInputType.number,
-                formatters: [FilteringTextInputFormatter.digitsOnly],
-              ),
-              _buildTextFormField(
-                controller: _imageUrlController,
-                label: 'URL Gambar (Opsional)',
-                icon: Icons.image,
-                validator: null,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: _isSubmitting ? null : _submitForm,
-                icon: _isSubmitting
-                    ? const SizedBox.shrink()
-                    : const Icon(Icons.save),
-                label: _isSubmitting
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Simpan Event'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -246,6 +252,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     TextInputType? keyboardType,
     List<TextInputFormatter>? formatters,
     String? Function(String?)? validator,
+    bool readOnly = false,
+    VoidCallback? onTap,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
@@ -254,10 +262,14 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         maxLines: maxLines,
         keyboardType: keyboardType,
         inputFormatters: formatters,
+        readOnly: readOnly,
+        onTap: onTap,
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon),
           border: const OutlineInputBorder(),
+          filled: readOnly,
+          fillColor: readOnly ? Colors.grey.withOpacity(0.05) : null,
         ),
         validator:
             validator ??

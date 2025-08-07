@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uas_event_app/api/api_service.dart';
 import 'package:uas_event_app/models/user_model.dart';
 import 'package:uas_event_app/screens/login_screen.dart';
+import 'package:uas_event_app/screens/my_events_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -46,25 +47,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const LoginScreen()),
-          (Route<dynamic> route) => false,
+              (Route<dynamic> route) => false,
         );
       }
     }
   }
 
-  void _handleEdit() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Fitur ini belum tersedia.'),
-        backgroundColor: Colors.orange,
-      ),
+  /// Widget pembantu untuk menampilkan satu baris informasi user.
+  Widget _buildInfoTile(IconData icon, String label, String value) {
+    return ListTile(
+      leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
+      title: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+      subtitle: Text(value, style: Theme.of(context).textTheme.bodyLarge),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Profil Saya')),
+      appBar: AppBar(
+        title: const Text('Profil Saya'),
+      ),
       body: FutureBuilder<User>(
         future: _userFuture,
         builder: (context, snapshot) {
@@ -72,7 +75,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(child: Text('Gagal memuat profil: ${snapshot.error}'));
           }
           if (!snapshot.hasData) {
             return const Center(child: Text('Data user tidak ditemukan.'));
@@ -80,74 +83,90 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           final user = snapshot.data!;
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildProfileField(
-                  label: 'Nama Lengkap',
-                  value: user.name,
-                  icon: Icons.badge_outlined,
-                ),
-                const SizedBox(height: 16),
-                _buildProfileField(
-                  label: 'Email',
-                  value: user.email,
-                  icon: Icons.email_outlined,
-                ),
-                const SizedBox(height: 16),
-                _buildProfileField(
-                  label: 'NIM / Nomor Mahasiswa',
-                  value: user.studentNumber,
-                  icon: Icons.person_outline,
-                ),
-                const SizedBox(height: 32),
-
-                OutlinedButton.icon(
-                  onPressed: _handleEdit,
-                  icon: const Icon(Icons.edit_outlined),
-                  label: const Text('Edit Profil'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+          return ListView(
+            padding: const EdgeInsets.symmetric(vertical: 24.0),
+            children: [
+              // Bagian Avatar dan Nama
+              Center(
+                child: CircleAvatar(
+                  radius: 50,
+                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                  child: Text(
+                    user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+                    style: const TextStyle(fontSize: 40),
                   ),
                 ),
-                const SizedBox(height: 12),
-
-                FilledButton.icon(
-                  onPressed: _handleLogout,
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Logout'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
+              ),
+              const SizedBox(height: 16),
+              Center(
+                child: Text(
+                  user.name,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                  textAlign: TextAlign.center,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 24),
+              const Divider(thickness: 0.5),
+
+              // Detail informasi user
+              _buildInfoTile(Icons.email_outlined, "Email", user.email),
+              _buildInfoTile(Icons.badge_outlined, "NIM", user.studentNumber),
+              _buildInfoTile(Icons.school_outlined, "Jurusan", user.major),
+              _buildInfoTile(Icons.class_outlined, "Angkatan", user.classYear),
+
+              const Divider(height: 32, thickness: 0.5),
+
+              // Menu "Event Saya"
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                leading: const Icon(Icons.event_note_outlined, size: 28),
+                title: const Text('Event Saya', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Lihat event yang Anda ikuti dan buat'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const MyEventsScreen(),
+                    ),
+                  );
+                },
+              ),
+
+              const Divider(height: 32, thickness: 0.5),
+
+              // Tombol-tombol Aksi di bagian bawah
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Fitur ini belum tersedia.'),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.edit_outlined),
+                      label: const Text('Edit Profil'),
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      onPressed: _handleLogout,
+                      icon: const Icon(Icons.logout),
+                      label: const Text('Logout'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.red.shade400,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildProfileField({
-    required String label,
-    required String value,
-    required IconData icon,
-  }) {
-    return TextFormField(
-      initialValue: value,
-      readOnly: true,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon),
-        border: const OutlineInputBorder(),
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 16,
-          horizontal: 12,
-        ),
       ),
     );
   }

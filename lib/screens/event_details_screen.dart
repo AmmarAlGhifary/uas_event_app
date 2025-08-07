@@ -8,10 +8,7 @@ import 'package:uas_event_app/models/event_model.dart';
 class EventDetailScreen extends StatefulWidget {
   final Event event;
 
-  const EventDetailScreen({
-    super.key,
-    required this.event,
-  });
+  const EventDetailScreen({super.key, required this.event});
 
   @override
   State<EventDetailScreen> createState() => _EventDetailScreenState();
@@ -50,9 +47,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              e.toString().replaceFirst("Exception: ", ""),
-            ),
+            content: Text(e.toString().replaceFirst("Exception: ", "")),
             backgroundColor: Colors.red,
           ),
         );
@@ -71,9 +66,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     final event = widget.event;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Detail Event'),
-      ),
+      appBar: AppBar(title: const Text('Detail Event')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
@@ -81,10 +74,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
           children: [
             Text(
               event.title,
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
             _buildDetailRow(
@@ -110,18 +102,23 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             const Divider(height: 48, thickness: 1),
             Text(
               'Deskripsi',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Deskripsi',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               event.description,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyLarge
-                  ?.copyWith(color: Colors.black.withOpacity(0.7)),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+              ), // <-- UBAH BARIS INI
               textAlign: TextAlign.justify,
             ),
           ],
@@ -131,16 +128,16 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         onPressed: _isRegistering ? null : _handleRegister,
         label: _isRegistering
             ? const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.0),
-          child: SizedBox(
-            height: 20,
-            width: 20,
-            child: CircularProgressIndicator(
-              color: Colors.white,
-              strokeWidth: 2,
-            ),
-          ),
-        )
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                ),
+              )
             : const Text('Daftar Event Ini'),
         icon: _isRegistering
             ? const SizedBox.shrink()
@@ -150,11 +147,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   }
 
   Widget _buildDetailRow(
-      BuildContext context, {
-        required IconData icon,
-        required String title,
-        required String subtitle,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -164,17 +161,13 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
+              Text(title, style: Theme.of(context).textTheme.bodyMedium),
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w600),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
             ],
           ),
