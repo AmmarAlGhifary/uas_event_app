@@ -152,10 +152,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          await Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => const CreateEventScreen()),
+          final bool? shouldRefresh = await Navigator.of(context).push<bool>( // <-- Tangkap hasil
+            MaterialPageRoute(
+              builder: (context) => const CreateEventScreen(),
+            ),
           );
-          _fetchEvents();
+          if(shouldRefresh == true) {
+            _fetchEvents();
+          }
         },
         tooltip: 'Buat Event Baru',
         child: const Icon(Icons.add),

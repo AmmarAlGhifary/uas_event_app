@@ -85,9 +85,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.of(
-            context,
-          ).pop(true);
+          Navigator.of(context).pop(true);
         }
       } catch (e) {
         if (mounted) {

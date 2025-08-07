@@ -1,3 +1,5 @@
+// lib/api/api_service.dart
+
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -5,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uas_event_app/models/event_model.dart';
 import 'package:uas_event_app/models/user_model.dart';
 
+// Helper function untuk logging hanya saat mode debug
 void _log(String message) {
   if (kDebugMode) {
     print(message);
@@ -12,12 +15,16 @@ void _log(String message) {
 }
 
 class ApiService {
+  // --- KONSTANTA ---
   static const String _baseUrl = 'http://103.160.63.165/api';
   static const Map<String, String> _headers = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   };
 
+  // --- FUNGSI INTERNAL (HELPERS) UNTUK MANAJEMEN DATA LOKAL ---
+
+  /// [INTERNAL] Menyimpan token, data user, dan pre-fetch event yang diikuti ke SharedPreferences.
   Future<void> _saveAuthData(Map<String, dynamic> data) async {
     final prefs = await SharedPreferences.getInstance();
     final String token = data['token'];
@@ -43,6 +50,44 @@ class ApiService {
     _log('Auth data cleared!');
   }
 
+  Future<void> _saveMyEvents(Set<int> eventIds) async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<String> idList = eventIds.map((id) => id.toString()).toList();
+    await prefs.setStringList('my_events', idList);
+    _log('Saved my events to local storage: $idList');
+  }
+
+  Future<Set<int>> _fetchAndSaveMyEvents() async {
+    final token = await getToken();
+    if (token == null) return {};
+    final url = Uri.parse('$_baseUrl/my-events');
+    _log('--> GET (for saving): $url');
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      _log('<-- RESPONSE [${response.statusCode}] from GET: $url');
+      if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
+        final List<dynamic> eventsList = responseBody['data']['events'];
+        final eventIds = eventsList
+            .map((eventData) => eventData['id'] as int)
+            .toSet();
+        await _saveMyEvents(eventIds);
+        return eventIds;
+      } else {
+        return {};
+      }
+    } catch (e) {
+      _log('XXX ERROR from GET: $url -> $e');
+      return {};
+    }
+  }
+
   Future<User> getSavedUser() async {
     final prefs = await SharedPreferences.getInstance();
     final String? userDataString = prefs.getString('user_data');
@@ -58,20 +103,12 @@ class ApiService {
     return prefs.getString('auth_token');
   }
 
-  Future<void> _saveMyEvents(Set<int> eventIds) async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String> idList = eventIds.map((id) => id.toString()).toList();
-    await prefs.setStringList('my_events', idList);
-    _log('Saved my events to local storage: $idList');
-  }
-
   Future<Set<int>> getSavedRegisteredEventIds() async {
     final prefs = await SharedPreferences.getInstance();
     final List<String>? idList = prefs.getStringList('my_events');
     if (idList == null) {
       return {};
     }
-    // Convert the List of Strings back to a Set of integers.
     return idList.map((id) => int.parse(id)).toSet();
   }
 
@@ -180,7 +217,6 @@ class ApiService {
 
     final url = Uri.parse('$_baseUrl/user');
     _log('--> GET: $url');
-
     try {
       final response = await http.get(
         url,
@@ -194,8 +230,7 @@ class ApiService {
       _log('Body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return User.fromJson(data);
+        return User.fromJson(jsonDecode(response.body));
       } else {
         throw Exception(
           'Gagal memuat data user. Status: ${response.statusCode}',
@@ -241,7 +276,7 @@ class ApiService {
         url,
         headers: {
           'Accept': 'application/json',
-          'Authorization': 'Bearer $token'
+          'Authorization': 'Bearer $token',
         },
       );
       _log('<-- RESPONSE [${response.statusCode}] from GET: $url');
@@ -254,6 +289,26 @@ class ApiService {
       }
     } catch (e) {
       _log('XXX ERROR from getMyRegisteredEvents: $e');
+      return [];
+    }
+  }
+
+  Future<List<Event>> getCreatedEvents() async {
+    try {
+      final user = await getSavedUser();
+
+      final allEvents = await getEvents();
+
+      final createdEvents = allEvents
+          .where((event) => event.creator.id == user.id)
+          .toList();
+
+      _log(
+        'Ditemukan ${createdEvents.length} event yang dibuat oleh user ID ${user.id}',
+      );
+      return createdEvents;
+    } catch (e) {
+      _log('XXX ERROR from getCreatedEvents (client-side filter): $e');
       return [];
     }
   }
@@ -293,36 +348,6 @@ class ApiService {
     }
   }
 
-  Future<List<Event>> getCreatedEvents() async {
-    final token = await getToken();
-    if (token == null) return [];
-
-    final url = Uri.parse('$_baseUrl/user/created-events');
-    _log('--> GET: $url');
-
-    try {
-      final response = await http.get(
-        url,
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token'
-        },
-      );
-
-      _log('<-- RESPONSE [${response.statusCode}] from GET: $url');
-      if (response.statusCode == 200) {
-        final responseBody = jsonDecode(response.body);
-        final List<dynamic> eventsList = responseBody['data'];
-        return eventsList.map((json) => Event.fromJson(json)).toList();
-      } else {
-        return [];
-      }
-    } catch (e) {
-      _log('XXX ERROR from getCreatedEvents: $e');
-      return [];
-    }
-  }
-
   Future<Event> createEvent({
     required String title,
     required String description,
@@ -340,9 +365,7 @@ class ApiService {
     }
 
     final url = Uri.parse('$_baseUrl/events');
-    _log('--> POST: $url');
-
-    final Map<String, dynamic> requestBody = {
+    final requestBody = {
       'title': title,
       'description': description,
       'start_date': startDate,
@@ -353,7 +376,7 @@ class ApiService {
       'category': category,
       if (imageUrl != null && imageUrl.isNotEmpty) 'image_url': imageUrl,
     };
-
+    _log('--> POST: $url');
     _log('Body: ${jsonEncode(requestBody)}');
 
     final headers = {
@@ -375,7 +398,6 @@ class ApiService {
       final responseBody = jsonDecode(response.body);
 
       if (response.statusCode == 201) {
-        // 201 Created
         return Event.fromJson(responseBody['data']);
       } else {
         final errorMessage = responseBody['message'] ?? 'Gagal membuat event.';
@@ -384,37 +406,6 @@ class ApiService {
     } catch (e) {
       _log('XXX ERROR from POST: $url -> $e');
       rethrow;
-    }
-  }
-
-  Future<Set<int>> _fetchAndSaveMyEvents() async {
-    final token = await getToken();
-    if (token == null) return {};
-    final url = Uri.parse('$_baseUrl/my-events');
-    _log('--> GET (for saving): $url');
-    try {
-      final response = await http.get(
-        url,
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-      _log('<-- RESPONSE [${response.statusCode}] from GET: $url');
-      if (response.statusCode == 200) {
-        final responseBody = jsonDecode(response.body);
-        final List<dynamic> eventsList = responseBody['data']['events'];
-        final eventIds = eventsList
-            .map((eventData) => eventData['id'] as int)
-            .toSet();
-        await _saveMyEvents(eventIds);
-        return eventIds;
-      } else {
-        return {};
-      }
-    } catch (e) {
-      _log('XXX ERROR from GET: $url -> $e');
-      return {};
     }
   }
 }
