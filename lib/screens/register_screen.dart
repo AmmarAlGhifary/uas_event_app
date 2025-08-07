@@ -9,11 +9,14 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  // --- State Variables ---
   final _nameController = TextEditingController();
   final _studentNumberController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _majorController = TextEditingController(); // <-- DITAMBAHKAN
+  final _classYearController = TextEditingController(); // <-- DITAMBAHKAN
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _isLoading = false;
@@ -23,16 +26,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
+    // Dispose all controllers
     _nameController.dispose();
     _studentNumberController.dispose();
+    _emailController.dispose();
+    _majorController.dispose(); // <-- DITAMBAHKAN
+    _classYearController.dispose(); // <-- DITAMBAHKAN
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  /// Handles the entire registration logic, including UI updates and API calls.
+  /// Handles the entire registration logic.
   void _handleRegister() async {
-    // Basic validation
     if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -43,47 +49,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    // Show loading indicator
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       await _apiService.registerUser(
         name: _nameController.text,
         studentNumber: _studentNumberController.text,
+        email: _emailController.text,
         password: _passwordController.text,
+        major: _majorController.text, // <-- DITAMBAHKAN
+        classYear: _classYearController.text, // <-- DITAMBAHKAN
       );
 
-      // On success, show a green SnackBar
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Registrasi berhasil! Silakan login.'),
           backgroundColor: Colors.green,
         ),
       );
-
-      // After a short delay, pop back to the login screen
       Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) {
-          Navigator.of(context).pop();
-        }
+        if (mounted) Navigator.of(context).pop();
       });
     } catch (e) {
-      // On failure, show a red SnackBar with the error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString().replaceFirst("Exception: ", "")), // Clean up message
+          content: Text(e.toString().replaceFirst("Exception: ", "")),
           backgroundColor: Colors.red,
         ),
       );
     } finally {
-      // Hide loading indicator, whether success or failure
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -99,7 +94,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           children: [
             // --- Header Section ---
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 48.0),
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0), // Adjusted vertical padding
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -126,7 +121,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             // --- Form Section ---
             Expanded(
               child: Container(
-                padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
                 decoration: BoxDecoration(
                   color: colors.surface,
                   borderRadius: const BorderRadius.only(
@@ -146,9 +141,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
-                      // All TextFormFields remain the same...
+                      // All TextFormFields
                       TextFormField(
                         controller: _nameController,
                         decoration: const InputDecoration(labelText: 'Nama Lengkap', prefixIcon: Icon(Icons.badge_outlined), border: OutlineInputBorder()),
@@ -161,6 +156,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         keyboardType: TextInputType.number,
                       ),
                       const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _emailController,
+                        decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_outlined), border: OutlineInputBorder()),
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 16),
+                      // --- FIELD BARU ---
+                      TextFormField(
+                        controller: _majorController,
+                        decoration: const InputDecoration(labelText: 'Jurusan (Opsional)', prefixIcon: Icon(Icons.school_outlined), border: OutlineInputBorder()),
+                        keyboardType: TextInputType.text,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _classYearController,
+                        decoration: const InputDecoration(labelText: 'Tahun Angkatan (Opsional)', prefixIcon: Icon(Icons.calendar_today_outlined), border: OutlineInputBorder()),
+                        keyboardType: TextInputType.number,
+                      ),
+                      const SizedBox(height: 16),
+                      // --- AKHIR FIELD BARU ---
                       TextFormField(
                         controller: _passwordController,
                         obscureText: !_isPasswordVisible,
@@ -188,17 +203,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
 
-                      // Upgraded Register Button
+                      // Register Button
                       FilledButton(
-                        onPressed: _isLoading ? null : _handleRegister, // Disable button when loading
+                        onPressed: _isLoading ? null : _handleRegister,
                         style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          textStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                         child: _isLoading
                             ? SizedBox(
@@ -211,7 +223,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         )
                             : const Text('Daftar'),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
 
                       // Link back to Login
                       Row(

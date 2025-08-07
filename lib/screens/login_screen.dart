@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:uas_event_app/screens/register_screen.dart'; // Adjust import if needed
+import 'package:uas_event_app/api/api_service.dart';
+import 'package:uas_event_app/screens/dashboard_screen.dart'; // Sesuaikan path jika perlu
+import 'package:uas_event_app/screens/register_screen.dart'; // Sesuaikan path jika perlu
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -9,15 +11,57 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  // --- State Variables ---
   final _studentNumberController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
+
+  // --- API Service Instance ---
+  final ApiService _apiService = ApiService();
 
   @override
   void dispose() {
     _studentNumberController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  /// Handles the entire login logic, including UI updates and API calls.
+  void _handleLogin() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final token = await _apiService.loginUser(
+        studentNumber: _studentNumberController.text,
+        password: _passwordController.text,
+      );
+
+      // TODO: Save the token to SharedPreferences for session persistence.
+      print('Login berhasil! Token: $token');
+
+      // Navigate to Dashboard, replacing the login screen in the stack.
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+      );
+    } catch (e) {
+      // On failure, show a red SnackBar with the error message.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst("Exception: ", "")),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      // Ensure the loading indicator is hidden.
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -27,14 +71,15 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: colors.primary,
       body: SafeArea(
-        // The top-level SingleChildScrollView is REMOVED.
-        // The main layout is now a Column.
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // --- Header Section (No changes here) ---
+            // --- Header Section ---
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 48.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 48.0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -59,8 +104,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
 
             // --- Form Section ---
-            // The Container is now wrapped in an Expanded widget.
-            // This forces it to fill all remaining vertical space.
             Expanded(
               child: Container(
                 padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
@@ -71,12 +114,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     topRight: Radius.circular(30),
                   ),
                 ),
-                // The SingleChildScrollView is MOVED INSIDE the container.
-                // It now only wraps the form fields.
                 child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisSize: MainAxisSize.min, // Important for scroll view content
                     children: [
                       Text(
                         'Login',
@@ -114,24 +154,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ? Icons.visibility_off
                                   : Icons.visibility,
                             ),
-                            onPressed: () {
-                              setState(() {
-                                _isPasswordVisible = !_isPasswordVisible;
-                              });
-                            },
+                            onPressed: () => setState(
+                              () => _isPasswordVisible = !_isPasswordVisible,
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(height: 32),
 
-                      // Login Button
+                      // Upgraded Login Button
                       FilledButton(
-                        onPressed: () {
-                          // TODO: Implement login logic
-                          final studentNumber = _studentNumberController.text;
-                          final password = _passwordController.text;
-                          print('Login attempt: $studentNumber');
-                        },
+                        onPressed: _isLoading ? null : _handleLogin,
                         style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           textStyle: const TextStyle(
@@ -139,7 +172,16 @@ class _LoginScreenState extends State<LoginScreen> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        child: const Text('Login'),
+                        child: _isLoading
+                            ? SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: colors.onPrimary,
+                                  strokeWidth: 3,
+                                ),
+                              )
+                            : const Text('Login'),
                       ),
                       const SizedBox(height: 24),
 
@@ -149,11 +191,16 @@ class _LoginScreenState extends State<LoginScreen> {
                         children: [
                           const Text('Belum punya akun?'),
                           TextButton(
-                            onPressed: () {
-                              Navigator.of(context).push(MaterialPageRoute(
-                                builder: (context) => const RegisterScreen(),
-                              ));
-                            },
+                            onPressed: _isLoading
+                                ? null
+                                : () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const RegisterScreen(),
+                                      ),
+                                    );
+                                  },
                             child: const Text('Daftar di sini'),
                           ),
                         ],
